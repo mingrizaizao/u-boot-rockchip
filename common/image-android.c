@@ -596,6 +596,7 @@ static int image_load(img_t img, struct andr_img_hdr *hdr,
 		typesz = sizeof(hdr->recovery_dtbo_size);
 		break;
 	case IMG_DTB:
+		printf("Load dtb, header version=%u\n", hdr->header_version);
 		bsoffs = pgsz +
 			 ALIGN(hdr->kernel_size, pgsz) +
 			 ALIGN(hdr->ramdisk_size, pgsz) +
@@ -608,6 +609,7 @@ static int image_load(img_t img, struct andr_img_hdr *hdr,
 		break;
 	case IMG_RK_DTB:
 #ifdef CONFIG_RKIMG_BOOTLOADER
+printf("Load rk-dtb, header version=%u\n", hdr->header_version);
 		/* No going further, it handles DTBO, HW-ID, etc */
 		buffer = (void *)env_get_ulong("fdt_addr_r", 16, 0);
 		if (gd->fdt_blob != (void *)buffer)
@@ -692,7 +694,7 @@ static int android_image_separate(struct andr_img_hdr *hdr,
 {
 	ulong bstart;
 	int ret;
-
+printf("Android image separate: version=%u\n", hdr->header_version);
 	if (android_image_check_header(hdr)) {
 		printf("Bad android image header\n");
 		return -EINVAL;
@@ -707,6 +709,7 @@ static int android_image_separate(struct andr_img_hdr *hdr,
 	 *    in order to disable fdt/ramdisk relocation.
 	 */
 
+printf("Load kernel/ramdisk/second to their target position\n");
 	/* load rk-kernel.dtb alone */
 	if (image_load(IMG_RK_DTB, hdr, bstart, ram_base))
 		return -1;
@@ -768,7 +771,7 @@ static int android_image_separate_v34(struct andr_img_hdr *hdr,
 				      void *load_address, void *ram_base)
 {
 	ulong bstart;
-
+printf("Android image separate v34: version=%u\n", hdr->header_version);
 	if (android_image_check_header(hdr)) {
 		printf("Bad android image header\n");
 		return -EINVAL;
@@ -938,16 +941,20 @@ long android_image_load(struct blk_desc *dev_desc,
 	ulong comp_addr;
 	int comp, ret;
 	int blk_off;
-
+printf("android_image_load: part_info->start=0x%lx, load_address=0x%lx, max_size=0x%lx\n",
+	   part_info->start, load_address, max_size);
 	if (max_size < part_info->blksz)
 		return -1;
-
+printf("android_image_load: after check max_size, part_info->blksz=0x%lx\n",
+	   part_info->blksz);
 	hdr = populate_andr_img_hdr(dev_desc, (disk_partition_t *)part_info);
 	if (!hdr) {
 		printf("No valid android hdr\n");
 		return -1;
 	}
 
+printf("android_image_load: after populate hdr, hdr->kernel_size=0x%08x\n",
+	   hdr->kernel_size);
 	/*
 	 * create the layout:
 	 *
@@ -967,26 +974,30 @@ long android_image_load(struct blk_desc *dev_desc,
 			realloc(hdr, (blk_off + 1) * dev_desc->blksz);
 	if (!hdr)
 		return -1;
-
+printf("android_image_load: after realloc hdr, blk_off=%d\n", blk_off);
 	if (blk_dread(dev_desc, part_info->start + blk_off, 1,
 		      (char *)hdr + hdr->page_size) != 1) {
 		free(hdr);
 		return -1;
 	}
-
+printf("android_image_load: after read kernel blk, hdr->kernel_size=0x%08x\n",
+	   hdr->kernel_size);
 	/* Changed to compressed address ? */
 	comp = bootm_parse_comp((void *)(ulong)hdr + hdr->page_size);
+printf("comp=%d\n", comp);
 	comp_addr = android_image_get_comp_addr(hdr, comp);
 	if (comp_addr)
 		load_address = comp_addr;
 	else
 		load_address -= hdr->page_size;
-
+printf("comp=%d, comp_addr=0x%08lx, final load_address=0x%08lx\n",
+	   comp, comp_addr, load_address);
 	ret = android_image_load_separate(hdr, part_info, (void *)load_address);
 	if (ret) {
 		printf("Failed to load android image\n");
 		goto fail;
 	}
+	printf("Android image loaded to 0x%08lx\n", load_address);
 	android_image_set_decomp((void *)load_address, comp);
 
 	debug("Loading Android Image to 0x%08lx\n", load_address);

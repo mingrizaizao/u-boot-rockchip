@@ -108,7 +108,7 @@ int g_dnl_bind_fixup(struct usb_device_descriptor *dev, const char *name)
 __maybe_unused
 static inline void dump_cbw(struct fsg_bulk_cb_wrap *cbw)
 {
-	assert(!cbw);
+	assert(cbw);
 
 	debug("%s:\n", __func__);
 	debug("Signature %x\n", cbw->Signature);

@@ -11,7 +11,7 @@
 	};
 
 	chosen {
-		stdout-path = &uart2;
+		stdout-path = &uart1;
 	};
 };
 
@@ -50,6 +50,29 @@
 	status = "okay";
 };
 
+&sdmmc {
+    status = "okay";
+    broken-cd;
+    supports-sd;
+    supports-highspeed;
+    cap-sd-highspeed;
+    card-detect-delay = <200>;
+    max-frequency = <37500000>;
+    bus-width = <4>;
+	ignore-pm-notify;
+	keep-power-in-suspend;
+	cd-gpios = <&gpio1 0x11 0x00>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+
+	max-frequency = <37500000>;
+	num-slots = <1>;
+dmas = <&pdma 10>;
+		dma-names = "rx-tx";
+		num-slots = <1>;
+	bus-width = <1>;
+};
+
 &grf {
 	u-boot,dm-pre-reloc;
 };
@@ -64,8 +87,7 @@
 };
 
 &uart2 {
-	u-boot,dm-pre-reloc;
-	clock-frequency = <24000000>;
+    status = "disabled";
 };
 
 &u2phy {

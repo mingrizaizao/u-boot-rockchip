@@ -56,7 +56,54 @@ DECLARE_GLOBAL_DATA_PTR = (gd_t *) (CONFIG_SYS_INIT_GD_ADDR);
 #else
 DECLARE_GLOBAL_DATA_PTR;
 #endif
+/* 在文件顶部添加 */
+// static int led_blink1(void)
+// {
+// #define GPIO0_DR_ADDR  0x2007c000
+// #define GPIO0_DDR_ADDR 0x2007c004
+// #define RED_LED (1 << 26)
+//     volatile unsigned int *dr  = (volatile unsigned int *)GPIO0_DR_ADDR;
+//     volatile unsigned int *ddr = (volatile unsigned int *)GPIO0_DDR_ADDR;
+//     volatile int _i, _j;
+//     *ddr |= RED_LED;
+//     for (_j = 0; _j < 1; _j++) {
+//         *dr &= ~RED_LED;
+//         for (_i = 0; _i < 500000; _i++);
+//         *dr |= RED_LED;
+//         for (_i = 0; _i < 500000; _i++);
+//     }
+//     return 0;
+// }
 
+// static int led_blink2(void)
+// {
+//     volatile unsigned int *dr  = (volatile unsigned int *)0x2007c000;
+//     volatile unsigned int *ddr = (volatile unsigned int *)0x2007c004;
+//     volatile int _i, _j;
+//     *ddr |= (1 << 26);
+//     for (_j = 0; _j < 2; _j++) {
+//         *dr &= ~(1 << 26);
+//         for (_i = 0; _i < 500000; _i++);
+//         *dr |= (1 << 26);
+//         for (_i = 0; _i < 500000; _i++);
+//     }
+//     return 0;
+// }
+
+// static int led_blink3(void)
+// {
+//     volatile unsigned int *dr  = (volatile unsigned int *)0x2007c000;
+//     volatile unsigned int *ddr = (volatile unsigned int *)0x2007c004;
+//     volatile int _i, _j;
+//     *ddr |= (1 << 26);
+//     for (_j = 0; _j < 3; _j++) {
+//         *dr &= ~(1 << 26);
+//         for (_i = 0; _i < 500000; _i++);
+//         *dr |= (1 << 26);
+//         for (_i = 0; _i < 500000; _i++);
+//     }
+//     return 0;
+// }
 /*
  * TODO(sjg@chromium.org): IMO this code should be
  * refactored to a single function, something like:
@@ -793,6 +840,7 @@ static int initf_console_record(void)
 
 static int initf_dm(void)
 {
+
 #if defined(CONFIG_DM) && CONFIG_VAL(SYS_MALLOC_F_LEN)
 	int ret;
 
@@ -811,6 +859,10 @@ static int initf_dm(void)
 	return 0;
 }
 
+
+
+
+
 /* Architecture-specific memory reservation */
 __weak int reserve_arch(void)
 {
@@ -824,6 +876,7 @@ __weak int arch_cpu_init_dm(void)
 
 static const init_fnc_t init_sequence_f[] = {
 	setup_mon_len,
+	// led_blink1,       /* 最早检查点，闪1下 */
 #ifdef CONFIG_OF_CONTROL
 	fdtdec_setup,
 #endif
@@ -840,6 +893,7 @@ static const init_fnc_t init_sequence_f[] = {
 	arch_cpu_init,		/* basic arch cpu dependent setup */
 	mach_cpu_init,		/* SoC/machine dependent CPU setup */
 	initf_dm,
+	//  led_blink1,        /* 闪1下到这里正常 → 改成闪2下后继续 */
 	arch_cpu_init_dm,
 #if defined(CONFIG_BOARD_EARLY_INIT_F)
 	board_early_init_f,
@@ -857,6 +911,7 @@ static const init_fnc_t init_sequence_f[] = {
 	env_init,		/* initialize environment */
 	init_baud_rate,		/* initialze baudrate settings */
 	serial_init,		/* serial communications setup */
+    // led_blink2,        /* 闪2下到这里正常 */
 	console_init_f,		/* stage 1 init of console */
 	display_options,	/* say that we are here */
 	display_text_info,	/* show debugging info if required */
@@ -888,6 +943,7 @@ static const init_fnc_t init_sequence_f[] = {
 
 	announce_dram_init,
 	dram_init,		/* configure available RAM banks */
+    // led_blink3,        /* 闪3下到这里正常 */
 #ifdef CONFIG_POST
 	post_init_f,
 #endif
@@ -975,6 +1031,22 @@ void board_init_f(ulong boot_flags)
 {
 	gd->flags = boot_flags;
 	gd->have_console = 0;
+	// int r1 = readl(0x2000007c);
+	// printf("DM:    r1 = 0x%08x\n", r1);
+	// printf("DM:    0x2006400c = 0x%08x\n", readl(0x2006400c));
+
+
+	// printf("DM:    0x20064000 = 0x%08x\n", readl(0x20064000));
+	writel(0x80, 0x2006400c);
+	// printf("DM:    0x20064000 = 0x%08x\n", readl(0x20064000));
+	writel(0x0d, 0x20064000);
+	// printf("DM:    0x20064004 = 0x%08x\n", readl(0x20064004));
+	// printf("DM:    0x2006400c = 0x%08x\n", readl(0x2006400c));
+	writel(0x03, 0x2006400c);
+	printf("DM:    0x20064000 = 0x%08x\n", readl(0x20064000));
+	writel(0x55, 0x20064000);
+	printf("DM:    0x20064014 = 0x%08x\n", readl(0x20064014));
+	printf("DM:    0x20064000 = 0x%08x\n", readl(0x20064000));
 
 	if (initcall_run_list(init_sequence_f))
 		hang();

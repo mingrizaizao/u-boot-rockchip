@@ -1238,7 +1238,6 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		/* load attestation key from misc partition. */
 		load_attestation_key(dev_desc, &misc_part_info);
 #endif
-
 		mode = android_bootloader_load_and_clear_mode(dev_desc,
 							      &misc_part_info);
 #ifdef CONFIG_RKIMG_BOOTLOADER
@@ -1257,6 +1256,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 #endif
 	switch (mode) {
 	case ANDROID_BOOT_MODE_NORMAL:
+		printf("ANDROID: Normal boot\n");
 		/* In normal mode, we load the kernel from "boot" but append
 		 * "skip_initramfs" to the cmdline to make it ignore the
 		 * recovery initramfs in the boot partition.
@@ -1292,6 +1292,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 #endif
 		break;
 	case ANDROID_BOOT_MODE_BOOTLOADER:
+		printf("ANDROID: Bootloader mode\n");
 		/* Bootloader mode enters fastboot. If this operation fails we
 		 * simply return since we can't recover from this situation by
 		 * switching to another slot.
@@ -1331,6 +1332,7 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 				printf("Android image load failed\n");
 				return -1;
 			}
+			printf("xxxxxxxxxxxxxxxxxxxxxxxxx1");
 		} else {
 			printf("Vboot=0, AVB images, AVB verify\n");
 			if (android_slot_verify(boot_partname, &load_address,
@@ -1354,11 +1356,13 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 	}
 #endif
 
+printf("ANDROID: Kernel loaded to 0x%lx\n", load_address);
 	/* Set Android root variables. */
 	env_set_ulong("android_root_devnum", dev_desc->devnum);
 	env_set("android_slotsuffix", slot_suffix);
 
 #ifdef CONFIG_FASTBOOT_OEM_UNLOCK
+printf("Support oem unlock, read oem unlock status\n");
 	/* read oem unlock status and attach to bootargs */
 	uint8_t unlock = 0;
 	TEEC_Result result;
@@ -1371,14 +1375,15 @@ int android_bootloader_boot_flow(struct blk_desc *dev_desc,
 		env_update("bootargs", oem_unlock);
 	}
 #endif
-
+printf("ANDROID: bootargs: \"%s\"\n", env_get("bootargs"));
 	/* Assemble the command line */
 	command_line = android_assemble_cmdline(slot_suffix, mode_cmdline);
 	env_update("bootargs", command_line);
 
 	debug("ANDROID: bootargs: \"%s\"\n", command_line);
-
+printf("ANDROID: Final bootargs: \"%s\"\n", env_get("bootargs"));
 #ifdef CONFIG_SUPPORT_OEM_DTB
+	printf("Support oem dtb, get fdt data from oem partition\n");
 	if (android_bootloader_get_fdt(ANDROID_PARTITION_OEM,
 				       ANDROID_ARG_FDT_FILENAME)) {
 		printf("Can not get the fdt data from oem!\n");

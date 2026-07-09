@@ -1,0 +1,11 @@
+export ARCH=arm
+export CROSS_COMPILE=~/gcc-linaro-6.3.1-2017.05-i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
+
+make rk3128_defconfig
+make
+
+cd ~/u-boot-next-dev
+../rkbin-master/tools/loaderimage --pack --uboot ./u-boot.bin uboot.img 0x60000000
+../rkbin-master/tools/loaderimage --pack --trustos ../rkbin-master/bin/rk31/rk3126_tee_ta_v2.04.bin trust.img --size 1024 4
+cp uboot.img /mnt/f/rk3128/
+cp trust.img /mnt/f/rk3128/

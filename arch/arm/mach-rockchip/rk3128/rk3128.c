@@ -44,28 +44,85 @@ int arch_cpu_init(void)
 	return 0;
 }
 
+// void board_debug_uart_init(void)
+// {
+// 	struct rk3128_grf * const grf __maybe_unused =
+// 		(struct rk3128_grf * const)0x20008000;
+
+// 	enum {
+// 		/* UART2 */
+// 		GPIO1C2_SHIFT		= 4,
+// 		GPIO1C2_MASK		= GENMASK(5, 4),
+// 		GPIO1C2_GPIO		= 0,
+// 		GPIO1C2_MMC0_D0		= 1,
+// 		GPIO1C2_UART2_TX	= 2,
+
+// 		GPIO1C3_SHIFT		= 6,
+// 		GPIO1C3_MASK		= GENMASK(7, 6),
+// 		GPIO1C3_GPIO		= 0,
+// 		GPIO1C2_MMC0_D1		= 1,
+// 		GPIO1C2_UART2_RX	= 2,
+// 	};
+
+// 	rk_clrsetreg(&grf->gpio1c_iomux,
+// 		     GPIO1C2_MASK, GPIO1C2_UART2_TX << GPIO1C2_SHIFT);
+// 	rk_clrsetreg(&grf->gpio1c_iomux,
+// 		     GPIO1C3_MASK, GPIO1C2_UART2_RX << GPIO1C3_SHIFT);
+// }
 void board_debug_uart_init(void)
 {
-	struct rk3128_grf * const grf __maybe_unused =
-		(struct rk3128_grf * const)0x20008000;
 
-	enum {
-		/* UART2 */
-		GPIO1C2_SHIFT		= 4,
-		GPIO1C2_MASK		= GENMASK(5, 4),
-		GPIO1C2_GPIO		= 0,
-		GPIO1C2_MMC0_D0		= 1,
-		GPIO1C2_UART2_TX	= 2,
+#define GPIO0_BASE      0x2007c000
+#define GPIO0_DR        (GPIO0_BASE + 0x00)
+#define GPIO0_DDR       (GPIO0_BASE + 0x04)
+#define GREEN_LED_PIN   (1 << 8)
+#define RED_LED_PIN     (1 << 26)
 
-		GPIO1C3_SHIFT		= 6,
-		GPIO1C3_MASK		= GENMASK(7, 6),
-		GPIO1C3_GPIO		= 0,
-		GPIO1C2_MMC0_D1		= 1,
-		GPIO1C2_UART2_RX	= 2,
-	};
+    /* 进入函数立即点绿灯 */
+    writel(readl(GPIO0_DDR) | GREEN_LED_PIN | RED_LED_PIN, GPIO0_DDR);
+    writel(readl(GPIO0_DR) | GREEN_LED_PIN, GPIO0_DR);
 
-	rk_clrsetreg(&grf->gpio1c_iomux,
-		     GPIO1C2_MASK, GPIO1C2_UART2_TX << GPIO1C2_SHIFT);
-	rk_clrsetreg(&grf->gpio1c_iomux,
-		     GPIO1C3_MASK, GPIO1C2_UART2_RX << GPIO1C3_SHIFT);
+/* 延时约1秒 */
+    volatile int i;
+    for (i = 0; i < 2000000; i++);
+
+
+       /* 进入函数：熄灭绿灯 */
+    writel(readl(GPIO0_DDR) | GREEN_LED_PIN | RED_LED_PIN, GPIO0_DDR);
+    writel(readl(GPIO0_DR) & ~GREEN_LED_PIN, GPIO0_DR);
+
+/* 延时约1秒 */
+    for (i = 0; i < 2000000; i++);
+
+
+
+    struct rk3128_grf * const grf __maybe_unused =
+        (struct rk3128_grf * const)0x20008000;
+
+    enum {
+        /* UART1 TX: GPIO1_B1, bits[3:2] */
+        GPIO1B1_SHIFT       = 2,
+        GPIO1B1_MASK        = GENMASK(3, 2),
+        GPIO1B1_UART1_TX    = 2,
+
+        /* UART1 RX: GPIO1_B2, bits[5:4] */
+        GPIO1B2_SHIFT       = 4,
+        GPIO1B2_MASK        = GENMASK(5, 4),
+        GPIO1B2_UART1_RX    = 2,
+    };
+
+    rk_clrsetreg(&grf->gpio1b_iomux,
+             GPIO1B1_MASK, GPIO1B1_UART1_TX << GPIO1B1_SHIFT);
+    rk_clrsetreg(&grf->gpio1b_iomux,
+             GPIO1B2_MASK, GPIO1B2_UART1_RX << GPIO1B2_SHIFT);
+
+/* 延时约1秒 */
+    for (i = 0; i < 2000000; i++);
+
+     /* iomux 完成后点红灯 */
+    writel(readl(GPIO0_DR) | RED_LED_PIN, GPIO0_DR);
+/* 延时约1秒 */
+    for (i = 0; i < 2000000; i++);
+        /* iomux 完成后：熄灭红灯 */
+    writel(readl(GPIO0_DR) & ~RED_LED_PIN, GPIO0_DR);
 }

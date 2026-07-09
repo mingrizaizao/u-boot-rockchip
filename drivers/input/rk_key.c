@@ -12,7 +12,6 @@ static int rk_key_ofdata_to_platdata(struct udevice *dev)
 {
 	struct dm_key_uclass_platdata *uc_key;
 	u32 chn[2];
-
 	uc_key = dev_get_uclass_platdata(dev);
 	if (!uc_key)
 		return -ENXIO;
@@ -20,6 +19,9 @@ static int rk_key_ofdata_to_platdata(struct udevice *dev)
 	uc_key->name = dev_read_string(dev, "label");
 	uc_key->code = dev_read_u32_default(dev, "linux,code", -ENODATA);
 
+ printf("rk_key: %s code=%d\n",
+           uc_key->name,
+           uc_key->code);
 	if (dev_read_u32_array(dev_get_parent(dev), "io-channels", chn, 2)) {
 		printf("%s: read 'io-channels' failed\n", uc_key->name);
 		return -EINVAL;
@@ -56,6 +58,7 @@ U_BOOT_DRIVER(rk_key) = {
 /* Key Bus */
 static int rk_key_bus_bind(struct udevice *dev)
 {
+	printf("rk_key_bus_bind called\n");
 	return key_bind_children(dev, "rk_key");
 }
 
@@ -65,8 +68,9 @@ static const struct udevice_id rk_key_bus_match[] = {
 };
 
 U_BOOT_DRIVER(rk_key_bus) = {
-	.name	   = "rk_key_bus",
-	.id	   = UCLASS_SIMPLE_BUS,
-	.of_match  = rk_key_bus_match,
-	.bind	   = rk_key_bus_bind,
+    .name     = "rk_key_bus",
+    .id       = UCLASS_SIMPLE_BUS,
+    .of_match = rk_key_bus_match,
+    .bind     = rk_key_bus_bind,
+    .flags    = DM_FLAG_PRE_RELOC,
 };

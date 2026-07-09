@@ -74,7 +74,8 @@ int ofnode_read_u64(ofnode node, const char *propname, u64 *outp)
 bool ofnode_read_bool(ofnode node, const char *propname)
 {
 	const void *prop;
-
+if (!ofnode_valid(node))      
+       return false;
 	assert(ofnode_valid(node));
 	debug("%s: %s: ", __func__, propname);
 

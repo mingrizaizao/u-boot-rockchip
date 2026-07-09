@@ -100,7 +100,7 @@ int _log(enum log_category_t cat, enum log_level_t level, const char *file,
 		      __func__, \
 		      pr_fmt(_fmt), ##_args); \
 	})
-
+#define DEBUG 1
 #ifdef DEBUG
 #define _DEBUG	1
 #else

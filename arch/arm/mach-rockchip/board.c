@@ -543,6 +543,41 @@ static void early_download(void)
 
 static void board_debug_init(void)
 {
+/* 闪灯测试 */
+   #define GPIO0_DR_ADDR  0x2007c000
+#define GPIO0_DDR_ADDR 0x2007c004
+#define GREEN_LED (1 << 8)
+    volatile unsigned int *dr  = (volatile unsigned int *)GPIO0_DR_ADDR;
+    volatile unsigned int *ddr = (volatile unsigned int *)GPIO0_DDR_ADDR;
+    volatile int _i, _j;
+
+    *ddr |= GREEN_LED;
+    for (_j = 0; _j < 5; _j++) {
+        *dr &= ~GREEN_LED;  /* 灭 */
+        for (_i = 0; _i < 500000; _i++);
+        *dr |= GREEN_LED;   /* 亮 */
+        for (_i = 0; _i < 500000; _i++);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	/* 强制清零，确保 debug_uart_init 被调用 */
+    gd->serial.using_pre_serial = 0;
+
+
+
 	if (!gd->serial.using_pre_serial &&
 	    !(gd->flags & GD_FLG_DISABLE_CONSOLE))
 		debug_uart_init();
@@ -559,6 +594,7 @@ static void board_debug_init(void)
 
 int board_init(void)
 {
+
 	smp_event1(SEVT_0, 0);
 
 	board_debug_init();

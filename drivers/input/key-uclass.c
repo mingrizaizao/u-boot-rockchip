@@ -190,13 +190,16 @@ int key_read(int code)
 	ret = uclass_get(UCLASS_KEY, &uc);
 	if (ret)
 		return ret;
-
+printf("looking for code=%d\n", code);
 try_again:
 	for (uclass_first_device(UCLASS_KEY, &dev);
 	     dev;
 	     uclass_next_device(&dev)) {
 		uc_key = dev_get_uclass_platdata(dev);
-
+printf("KEY DEV: name=%s code=%d type=%d\n",
+               uc_key->name,
+               uc_key->code,
+               uc_key->type);
 		if (!allow_pre_reloc && uc_key->pre_reloc)
 			continue;
 

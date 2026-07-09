@@ -299,6 +299,16 @@ void rockchip_set_bootdev(struct blk_desc *desc)
 __weak int rockchip_dnl_key_pressed(void)
 {
 #if defined(CONFIG_DM_KEY)
+printf("fdt model: %s\n",
+       (const char *)fdt_getprop(gd->fdt_blob, 0, "model", NULL));
+
+int key;
+
+key = key_read(KEY_VOLUMEUP);
+
+printf("KEY_VOLUMEUP=%d\n", key);
+
+
 	return key_is_pressed(key_read(KEY_VOLUMEUP));
 
 #elif defined(CONFIG_ADC)
@@ -493,7 +503,7 @@ static int dtb_scan(void *fdt, int where)
 		int hash_size = 0;
 		char *hash;
 		u32 ret;
-
+printf("Scan DTB: Resource Image\n");
 		ret = rockchip_read_resource_dtb(fdt, &hash, &hash_size);
 		if (ret) {
 			printf("Failed to load DTB, ret=%d\n", ret);
@@ -526,7 +536,7 @@ int rockchip_read_dtb_file(void *fdt)
 {
 	int locate, ret;
 	int size;
-
+printf("Scan DTB: ");
 	for (locate = 0; locate < LOCATE_END; locate++) {
 		ret = dtb_scan(fdt, locate);
 		if (!ret)

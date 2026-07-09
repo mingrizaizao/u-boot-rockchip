@@ -339,6 +339,7 @@ int serdes_gpio_register(struct udevice *dev)
 		    !ofnode_pre_reloc(subnode))
 			continue;
 
+		printf("%s: subnode=11111111xxxxxxxxxxxxxxxxxxxx\n", __func__);
 		name = ofnode_get_name(subnode);
 		if (!name)
 			continue;
@@ -403,7 +404,7 @@ int serdes_pinctrl_register(struct udevice *dev)
 		if (pre_reloc_only &&
 		    !ofnode_pre_reloc(subnode))
 			continue;
-
+		printf("%s: subnode=xxxxxxxxxxxxxxxxxxxx\n", __func__);
 		name = ofnode_get_name(subnode);
 		if (!name)
 			continue;

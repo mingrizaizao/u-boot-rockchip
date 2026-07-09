@@ -112,19 +112,25 @@ static int phandles_fixup_cru(const void *fdt)
 
 	/* Try to fixup all cru phandle from U-Boot dtb nodes */
 	for (id = 0; id < UCLASS_COUNT; id++) {
+		printf("%s: uclass %d\n", __func__, id);
+		
 		ret = uclass_get(id, &uc);
 		if (ret)
 			continue;
-
+		printf("%s: uclass %d, find.\n", __func__, id);
 		if (list_empty(&uc->dev_head))
 			continue;
-
+		printf("%s: uclass %d, not empty.\n", __func__, id);
 		list_for_each_entry(dev, &uc->dev_head, uclass_node) {
+			printf("%s: uclass %d, dev %s\n", __func__, id, dev->name);
+			/* 跳过没有dtb节点的虚拟设备 */
+			if (!ofnode_valid(dev->node))
+				continue;
 			/* Only U-Boot node go further */
 			if (!dev_read_bool(dev, "u-boot,dm-pre-reloc") &&
 			    !dev_read_bool(dev, "u-boot,dm-spl"))
 				continue;
-
+			printf("%s: uclass %d, dev %s, is u-boot node.\n", __func__, id, dev->name);
 			for (i = 0; i < ARRAY_SIZE(props); i++) {
 				if (!dev_read_prop(dev, props[i], &length))
 					continue;

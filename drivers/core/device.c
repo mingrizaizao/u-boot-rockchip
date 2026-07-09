@@ -35,16 +35,32 @@ static int device_bind_common(struct udevice *parent, const struct driver *drv,
 			      ulong driver_data, ofnode node,
 			      uint of_platdata_size, struct udevice **devp)
 {
+
+#define BLINK_BIND2(n) do { \
+    volatile unsigned int *dr  = (volatile unsigned int *)0x2007c000; \
+    volatile unsigned int *ddr = (volatile unsigned int *)0x2007c004; \
+    volatile int _i, _j; \
+    *ddr |= (1 << 26); \
+    for (_j = 0; _j < (n); _j++) { \
+        *dr &= ~(1 << 26); \
+        for (_i = 0; _i < 500000; _i++); \
+        *dr |= (1 << 26); \
+        for (_i = 0; _i < 500000; _i++); \
+    } \
+} while(0)
+
+
+
 	struct udevice *dev;
 	struct uclass *uc;
 	bool after_u_boot_dev = true;
 	int size, ret = 0;
-
+// BLINK_BIND2(1);
 	if (devp)
 		*devp = NULL;
 	if (!name)
 		return -EINVAL;
-
+// BLINK_BIND2(2);
 	ret = uclass_get(drv->id, &uc);
 	if (ret) {
 		debug("Missing uclass for driver %s\n", drv->name);
@@ -104,6 +120,8 @@ static int device_bind_common(struct udevice *parent, const struct driver *drv,
 		}
 	}
 #endif
+
+// BLINK_BIND2(3);
 	dev = calloc(1, sizeof(struct udevice));
 	if (!dev)
 		return -ENOMEM;
@@ -337,24 +355,58 @@ int device_bind(struct udevice *parent, const struct driver *drv,
 				  offset_to_ofnode(of_offset), 0, devp);
 }
 
+// int device_bind_by_name(struct udevice *parent, bool pre_reloc_only,
+// 			const struct driver_info *info, struct udevice **devp)
+// {
+// 	struct driver *drv;
+// 	uint platdata_size = 0;
+
+// 	drv = lists_driver_lookup_name(info->name);
+// 	if (!drv)
+// 		return -ENOENT;
+// 	if (pre_reloc_only && !(drv->flags & DM_FLAG_PRE_RELOC))
+// 		return -EPERM;
+
+// #if CONFIG_IS_ENABLED(OF_PLATDATA)
+// 	platdata_size = info->platdata_size;
+// #endif
+// 	return device_bind_common(parent, drv, info->name,
+// 			(void *)info->platdata, 0, ofnode_null(), platdata_size,
+// 			devp);
+// }
+
+
 int device_bind_by_name(struct udevice *parent, bool pre_reloc_only,
-			const struct driver_info *info, struct udevice **devp)
+            const struct driver_info *info, struct udevice **devp)
 {
-	struct driver *drv;
-	uint platdata_size = 0;
+#define BLINK_BIND(n) do { \
+    volatile unsigned int *dr  = (volatile unsigned int *)0x2007c000; \
+    volatile unsigned int *ddr = (volatile unsigned int *)0x2007c004; \
+    volatile int _i, _j; \
+    *ddr |= (1 << 26); \
+    for (_j = 0; _j < (n); _j++) { \
+        *dr &= ~(1 << 26); \
+        for (_i = 0; _i < 500000; _i++); \
+        *dr |= (1 << 26); \
+        for (_i = 0; _i < 500000; _i++); \
+    } \
+} while(0)
 
-	drv = lists_driver_lookup_name(info->name);
-	if (!drv)
-		return -ENOENT;
-	if (pre_reloc_only && !(drv->flags & DM_FLAG_PRE_RELOC))
-		return -EPERM;
+    struct driver *drv;
+    uint platdata_size = 0;
 
-#if CONFIG_IS_ENABLED(OF_PLATDATA)
-	platdata_size = info->platdata_size;
-#endif
-	return device_bind_common(parent, drv, info->name,
-			(void *)info->platdata, 0, ofnode_null(), platdata_size,
-			devp);
+    // BLINK_BIND(1);
+    drv = lists_driver_lookup_name(info->name);
+    // BLINK_BIND(2);
+    if (!drv)
+        return -ENOENT;
+    if (pre_reloc_only && !(drv->flags & DM_FLAG_PRE_RELOC))
+        return -EPERM;
+
+    // BLINK_BIND(3);
+    return device_bind_common(parent, drv, info->name,
+            (void *)info->platdata, 0, ofnode_null(), platdata_size,
+            devp);
 }
 
 static void *alloc_priv(int size, uint flags)

@@ -43,7 +43,24 @@ struct udevice *dm_root(void)
 
 	return gd->dm_root;
 }
+#define UART2_BASE 0x20068000
+#define UART_THR 0x00
+#define UART_LSR 0x14
+static void dbg_putc(char c)
+{
+    volatile unsigned char *uart =
+        (volatile unsigned char *)UART2_BASE;
 
+    while (!(uart[UART_LSR] & 0x20))
+        ;
+
+    uart[UART_THR] = c;
+}
+static void dbg_puts(const char *s)
+{
+    while (*s)
+        dbg_putc(*s++);
+}
 void dm_fixup_for_gd_move(struct global_data *new_gd)
 {
 	/* The sentinel node has moved, so update things that point to it */
@@ -265,42 +282,38 @@ static int dm_scan_fdt_live(struct udevice *parent,
  * @return 0 if OK, -ve on error
  */
 static int dm_scan_fdt_node(struct udevice *parent, const void *blob,
-			    int offset, bool pre_reloc_only)
+                int offset, bool pre_reloc_only)
 {
-	int ret = 0, err;
+    int ret = 0, err;
 
-	for (offset = fdt_first_subnode(blob, offset);
-	     offset > 0;
-	     offset = fdt_next_subnode(blob, offset)) {
-		if (pre_reloc_only &&
-		    !dm_fdt_pre_reloc(blob, offset))
-			continue;
-		if (!fdtdec_get_is_enabled(blob, offset)) {
-			pr_debug("   - ignoring disabled device\n");
-			continue;
-		}
-		err = lists_bind_fdt(parent, offset_to_ofnode(offset), NULL);
-		if (err && !ret) {
-			ret = err;
-			debug("%s: ret=%d\n", fdt_get_name(blob, offset, NULL),
-			      ret);
-		}
+    for (offset = fdt_first_subnode(blob, offset);
+         offset > 0;
+         offset = fdt_next_subnode(blob, offset)) {
+        if (pre_reloc_only &&
+            !dm_fdt_pre_reloc(blob, offset))
+            continue;
+        if (!fdtdec_get_is_enabled(blob, offset)) {
+            pr_debug("   - ignoring disabled device\n");
+            continue;
+        }
 
-#if CONFIG_IS_ENABLED(SCMI_FIRMWARE)
-		const char *name;
+        /* 打印当前扫描的节点名 */
+        dbg_puts(fdt_get_name(blob, offset, NULL));
+        dbg_puts("\n");
 
-		/* There is no compatible in "/firmware", bind it by default. */
-		name = fdt_get_name(blob, offset, NULL);
-		if (name && !strcmp(name, "firmware"))
-			ret = device_bind_driver_to_node(parent, "firmware",
-					name, offset_to_ofnode(offset), NULL);
-#endif
-	}
+        dbg_puts(fdt_get_name(blob, offset, NULL));
+        dbg_puts(" before_bind\n");
 
-	if (ret)
-		dm_warn("Some drivers failed to bind\n");
+        err = lists_bind_fdt(parent, offset_to_ofnode(offset), NULL);
 
-	return ret;
+        dbg_puts(fdt_get_name(blob, offset, NULL));
+        dbg_puts(" after_bind\n");
+        if (err && !ret) {
+            ret = err;
+        }
+    }
+
+    return ret;
 }
 
 int dm_scan_fdt_dev(struct udevice *dev)
@@ -320,13 +333,10 @@ int dm_scan_fdt_dev(struct udevice *dev)
 
 int dm_scan_fdt(const void *blob, bool pre_reloc_only)
 {
-#if CONFIG_IS_ENABLED(OF_LIVE)
-	if (of_live_active())
-		return dm_scan_fdt_live(gd->dm_root, gd->of_root,
-					pre_reloc_only);
-	else
-#endif
-	return dm_scan_fdt_node(gd->dm_root, blob, 0, pre_reloc_only);
+    dbg_puts("3a1\n");
+    int ret = dm_scan_fdt_node(gd->dm_root, blob, 0, pre_reloc_only);
+    dbg_puts("3a2\n");
+    return ret;
 }
 #else
 static int dm_scan_fdt_node(struct udevice *parent, const void *blob,
@@ -338,28 +348,23 @@ static int dm_scan_fdt_node(struct udevice *parent, const void *blob,
 
 int dm_extended_scan_fdt(const void *blob, bool pre_reloc_only)
 {
-	int node, ret;
+    int node, ret;
 
-	ret = dm_scan_fdt(gd->fdt_blob, pre_reloc_only);
-	if (ret) {
-		debug("dm_scan_fdt() failed: %d\n", ret);
-		return ret;
-	}
+    dbg_puts("3a\n");
+    ret = dm_scan_fdt(gd->fdt_blob, pre_reloc_only);
+    if (ret) return ret;
 
-	/* bind fixed-clock */
-	node = ofnode_to_offset(ofnode_path("/clocks"));
-	/* if no DT "clocks" node, no need to go further */
-	if (node < 0)
-		return ret;
+    dbg_puts("3b\n");
+    node = ofnode_to_offset(ofnode_path("/clocks"));
+    if (node < 0)
+        return ret;
 
-	ret = dm_scan_fdt_node(gd->dm_root, gd->fdt_blob, node,
-			       pre_reloc_only);
-	if (ret)
-		debug("dm_scan_fdt_node() failed: %d\n", ret);
+    dbg_puts("3c\n");
+    ret = dm_scan_fdt_node(gd->dm_root, gd->fdt_blob, node, pre_reloc_only);
 
-	return ret;
+    dbg_puts("3d\n");
+    return ret;
 }
-
 __weak int dm_scan_other(bool pre_reloc_only)
 {
 	return 0;
