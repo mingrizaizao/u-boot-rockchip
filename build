@@ -1,7 +1,7 @@
 export ARCH=arm
 export CROSS_COMPILE=~/gcc-linaro-6.3.1-2017.05-i686_arm-linux-gnueabihf/bin/arm-linux-gnueabihf-
 
-make rk3128_defconfig
+make txcz-rk3128-v3-1_defconfig
 make
 
 cd ~/u-boot-next-dev
