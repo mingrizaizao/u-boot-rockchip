@@ -2357,9 +2357,11 @@ int fit_image_load_index(bootm_headers_t *images, ulong addr,
 	}
 
 #if !defined(USE_HOSTCC)
+#if defined(CONFIG_FIT_CIPHER) || defined(CONFIG_FIT_IMAGE_POST_PROCESS)
 	ret = fit_image_get_load(fit, noffset, &load);
 	if (ret < 0)
 		return ret;
+#endif
 
 #if defined(CONFIG_FIT_CIPHER)
 	int cipher_noffset =
